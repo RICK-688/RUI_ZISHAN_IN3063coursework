@@ -137,3 +137,54 @@ def neural_network_backward(layers, caches, activation_type="relu"):
         grads.append(grad)
 
     return grads
+
+
+# Train a network
+def train(x, y, structure, epochs=10, learning_rate=0.00001, activation_type="relu", sample_number=1000):
+    # Initialize the network
+    weight, bias, layers = initializer(structure)
+
+    for epoch in range(epochs):
+        # For SGD, we randomly pick 10 samples to update the parameters
+        indices = np.random.choice(len(x), sample_number, replace=False)
+        average_loss = 0
+        weight_update = []
+        bias_update = []
+        # Forward propagation, only recieve the caches of the picked samples
+        for i in range(len(x)):
+            if i in indices:
+                requires_cache = True
+            else:
+                requires_cache = False
+
+            _, loss, caches = neural_network(x[i], y[i], layers, weight, bias, activation_type, requires_cache)
+
+            average_loss += loss / len(x)
+            # Back propagation only when caches are received
+            if requires_cache:
+                grads = neural_network_backward(layers, caches, activation_type)
+
+                # Update the gradients
+                if len(weight_update) == 0:
+                    for grad in grads:
+                        (grad_w, grad_b) = grad
+                        weight_update.append(grad_w / len(indices))
+                        bias_update.append(grad_b / len(indices))
+
+                else:
+                    for j in range(len(weight_update)):
+                        (grad_w, grad_b) = grads[j]
+                        weight_update[j] = weight_update[j] + grad_w / len(indices)
+                        bias_update[j] = bias_update[j] + grad_b / len(indices)
+
+        # Update the parameters
+        for i in range(len(weight_update)):
+            weight[i] = weight[i] - learning_rate * weight_update[-i - 1]
+            bias[i] = bias[i] - learning_rate * bias_update[-i - 1]
+        # Print the average loss
+        if epoch % 10 == 0:
+            print("This is the %dth epoch, the average loss is%f: " % (epoch, average_loss))
+
+    # Pack the parameters
+    parameters = (weight, bias)
+    return parameters, average_loss
