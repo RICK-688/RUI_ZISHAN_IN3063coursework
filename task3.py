@@ -1,5 +1,5 @@
 import numpy as np
-
+from torchvision import datasets, transforms
 
 
 # Here we define the activation functions and their back propagation
@@ -29,6 +29,7 @@ def relu_backward(prev_grad, cache):
         else:
             output.append(0)
     return np.array([output])
+
 
 # Define a softmax layer
 def softmax(x):
@@ -71,7 +72,6 @@ def initializer(structure):
 
 def cross_entropy(pred, y):
     return -sum(y * np.log(pred.squeeze()))
-
 
 
 # The forward and the backward propagation of the network
@@ -188,3 +188,61 @@ def train(x, y, structure, epochs=10, learning_rate=0.00001, activation_type="re
     # Pack the parameters
     parameters = (weight, bias)
     return parameters, average_loss
+
+
+# Evaluate a network
+def evaluate(x, y, parameters, activation_type="relu"):
+    (weight, bias) = parameters
+    layers = len(weight)
+    requires_cache = False
+
+    average_loss = 0
+    # Forward propagation
+    correct = 0
+    for i in range(len(x)):
+        output, loss, _ = neural_network(x[i], y[i], layers, weight, bias, activation_type, requires_cache)
+        average_loss += loss / len(x)
+
+        # Take the largest index as the result
+        prediction = np.argmax(output.squeeze())
+        if y[i][prediction] == 1:
+            correct += 1
+
+    return average_loss, correct / len(x)
+
+
+# This is used for one-hot encoding
+def one_hot_encoder(label, class_number):
+    one_hot = np.zeros(class_number)
+    one_hot[label] = 1
+    return one_hot
+
+
+# Fetch the dataset
+# Load the dataset
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+
+# Download and load the training data
+trainset = datasets.FashionMNIST('./data', download=True, train=True, transform=transform)
+
+# Download and load the validation data
+validationset = datasets.FashionMNIST('./data', download=True, train=False, transform=transform)
+
+# Prepare the data
+train_data = []
+train_label = []
+validation_data = []
+validation_label = []
+
+for i in range(len(trainset)):
+    train_data.append(np.array([np.array(trainset[i][0].flatten())]))
+    train_label.append(one_hot_encoder(trainset[i][1], 10))
+for i in range(len(validationset)):
+    validation_data.append(np.array([np.array(validationset[i][0].flatten())]))
+    validation_label.append(one_hot_encoder(validationset[i][1], 10))
+
+structure = [len(train_data[0].squeeze()), 50, 10]
+parameters, _ = train(train_data, train_label, structure, epochs=500, learning_rate=0.1, activation_type="relu")
+
+evaluate_loss, precision = evaluate(validation_data, validation_label, parameters)
+print(evaluate_loss, precision)
