@@ -140,9 +140,10 @@ def neural_network_backward(layers, caches, activation_type="relu"):
 
 
 # Train a network
-def train(x, y, structure, epochs=10, learning_rate=0.00001, activation_type="relu", sample_number=1000):
+def train(x, y, structure, epochs=10, learning_rate=0.00001, activation_type="relu", sample_number=5000):
     # Initialize the network
     weight, bias, layers = initializer(structure)
+    least_avg_loss = 10000000
 
     for epoch in range(epochs):
         # For SGD, we randomly pick 10 samples to update the parameters
@@ -181,9 +182,16 @@ def train(x, y, structure, epochs=10, learning_rate=0.00001, activation_type="re
         for i in range(len(weight_update)):
             weight[i] = weight[i] - learning_rate * weight_update[-i - 1]
             bias[i] = bias[i] - learning_rate * bias_update[-i - 1]
+
         # Print the average loss
         if epoch % 10 == 0:
-            print("This is the %dth epoch, the average loss is%f: " % (epoch, average_loss))
+            print("This is the %dth epoch, the average loss is%f. " % (epoch, average_loss))
+
+        # If performance better:
+        if average_loss < least_avg_loss:
+            # Pack and store the parameters
+            parameters = (weight, bias)
+            least_avg_loss = average_loss
 
     # Pack the parameters
     parameters = (weight, bias)
