@@ -4,6 +4,8 @@ import torchvision.transforms as transforms
 import ssl
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
+import matplotlib.pyplot as plt
 
 # If cuda is avaliable then we use it for calculation
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -107,3 +109,47 @@ def train(data_loader, model, epochs=20):
 
 epochs = 15
 train(train_dl, model, epochs)
+
+
+def test(data_loader, model):
+    correct_predict = 0
+    avg_loss = 0
+    pred = []
+    real = []
+    for i, data in enumerate(data_loader, 0):
+        # we don't require gradient when making predictions
+        with torch.no_grad():
+            inputs, labels = data
+            real.extend(labels.tolist())
+
+            # make prediction and calculate loss
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+
+            # take the maximum as the predicted label
+            for i in range(len(outputs)):
+                pred.append(np.argmax(outputs[i]))
+                if np.argmax(outputs[i]) == labels[i]:
+                    correct_predict += 1
+
+            # add up losses
+            avg_loss += loss.item() / len(data_loader)
+    print("Average loss is %.7f" % avg_loss)
+    print("The accuracy is %.3f" % (correct_predict / (len(data_loader) * 4)))
+
+    # return the predictions and the real labels
+    return real, pred
+
+
+# read the model from the saved path
+model = network()
+model.load_state_dict(torch.load('./classifier.pth'))
+
+real, pred = test(test_dl, model)
+
+# construct a confusion matrix
+confusion_matrix = np.zeros([10, 10])
+for i in range(len(real)):
+    confusion_matrix[real[i]][pred[i]] += 1
+
+print(confusion_matrix)
