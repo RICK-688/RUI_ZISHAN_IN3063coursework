@@ -72,3 +72,38 @@ class network(nn.Module):
 model = network()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
+
+
+def train(data_loader, model, epochs=20):
+    least_loss = 10000
+    for epoch in range(epochs):
+        avg_loss = 0
+
+        # for each iteration data contains samples of batch number
+        for i, data in enumerate(data_loader, 0):
+            inputs, labels = data
+
+            # make prediction and calculate loss
+            outputs = model(inputs)
+
+            loss = criterion(outputs, labels)
+
+            # set the gradient to zero for updating
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # add up losses
+            avg_loss += loss.item() / len(data_loader)
+
+        print("Average loss of the %dth epoch is %.7f" % (epoch, avg_loss))
+        # if the loss is less than the least, save the model and update the least loss
+        if avg_loss < least_loss:
+            torch.save(model.state_dict(), './classifier.pth')
+            least_loss = avg_loss
+
+    print('Finished Training')
+
+
+epochs = 15
+train(train_dl, model, epochs)
